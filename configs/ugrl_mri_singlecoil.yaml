@@ -1,0 +1,62 @@
+project:
+  name: ugrl_bridge
+  seed: 2026
+  output_dir: runs/ugrl_bridge
+
+data:
+  root: data/processed
+  manifest: splits/manifest.csv
+  dataset_name: fastmri_brain_axflair
+  image_size: 320
+  mask:
+    type: random_cartesian_1d_exact_lines
+    acceleration: 8
+    phase_encode_axis: width
+    center_fractions:
+      4: 0.08
+      8: 0.04
+      12: 0.02
+
+model:
+  name: UGRLBridge
+  input_channels: 2
+  base_channels: 48
+  token_dim: 192
+  window_size: 8
+  encoder_depth: 4
+  probabilistic_tokens:
+    min_sigma: 1.0e-4
+    density_memory_size: 4096
+    density_temperature: 10.0
+    memory_momentum: 0.99
+  bridge:
+    steps_infer: 4
+    uncertainty_noise_scale: 0.5
+
+loss:
+  rec_l1: 1.0
+  rec_ssim: 0.2
+  hfen: 0.05
+  data_consistency: 0.1
+  bridge: 1.0
+  probability_regularization: 0.01
+  calibration: 0.05
+  calibration_rank: 0.02
+
+train:
+  precision: amp
+  batch_size: 4
+  num_workers: 4
+  grad_clip: 1.0
+  epochs:
+    warmup: 50
+    calibration: 50
+    bridge: 100
+    joint: 50
+  optimizer:
+    type: adamw
+    lr: 2.0e-4
+    weight_decay: 1.0e-4
+  scheduler:
+    type: warmup_cosine
+    warmup_epochs: 5
